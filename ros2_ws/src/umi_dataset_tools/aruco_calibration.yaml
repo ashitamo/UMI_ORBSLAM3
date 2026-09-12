@@ -1,0 +1,343 @@
+format_version: 4
+camera:
+  image_topic: /camera/camera/color/image_rect_raw
+  camera_info_topic: /camera/camera/color/camera_info
+  frame_id: camera_color_optical_frame
+distance_calibration:
+  marker_ids:
+  - 0
+  - 5
+  marker_length_m: 0.0166
+  zero_percent:
+    timestamp: '2026-08-14T14:45:27'
+    marker_1:
+      id: 0
+      position_camera_m:
+        x: 0.024292460313909674
+        y: 0.03778650100510593
+        z: 0.10120088957196437
+    marker_2:
+      id: 5
+      position_camera_m:
+        x: -0.006428768130775169
+        y: 0.03900107967822273
+        z: 0.10230190297198981
+    center_distance_m: 0.030764936356357686
+  hundred_percent:
+    timestamp: '2026-08-14T14:45:39'
+    marker_1:
+      id: 0
+      position_camera_m:
+        x: 0.06878833578170691
+        y: 0.03824335773301884
+        z: 0.10221434090879393
+    marker_2:
+      id: 5
+      position_camera_m:
+        x: -0.050282035332094015
+        y: 0.03862891048040662
+        z: 0.10137527556824749
+    center_distance_m: 0.11907395163823616
+end_effector_calibration:
+  marker_id: 3
+  marker_length_m: 0.02108
+  yam_frame_definition:
+    base_frame: UMI handle bottom-center frame
+    ee_frame: YAM-compatible EE/TCP frame
+    ee_origin: ArUco ID 3 center
+    ee_x_axis: +Base Y
+    ee_y_axis: +Base Z
+    ee_z_axis: +Base X (gripper/tool direction)
+    includes_umi_to_yam_local_z_180_deg: true
+    R_base_from_yam_ee:
+    - - 0.0
+      - 0.0
+      - 1.0
+    - - 1.0
+      - 0.0
+      - 0.0
+    - - 0.0
+      - 1.0
+      - 0.0
+  cad_reference:
+    min_dist_mm:
+    - 155.6
+    - 1.385
+    - 101.3
+    max_dist_mm:
+    - 165.6
+    - 1.474
+    - 123.3
+    ee_midpoint_mm:
+    - 160.6
+    - 1.4295
+    - 112.3
+    ee_midpoint_m:
+    - 0.1606
+    - 0.0014295
+    - 0.1123
+    T_base_from_yam_ee:
+    - - 0.0
+      - 0.0
+      - 1.0
+      - 0.1606
+    - - 1.0
+      - 0.0
+      - 0.0
+      - 0.0014295
+    - - 0.0
+      - 1.0
+      - 0.0
+      - 0.1123
+    - - 0.0
+      - 0.0
+      - 0.0
+      - 1.0
+    T_yam_ee_from_base:
+    - - 0.0
+      - 1.0
+      - 0.0
+      - -0.0014295
+    - - 0.0
+      - 0.0
+      - 1.0
+      - -0.1123
+    - - 1.0
+      - 0.0
+      - 0.0
+      - -0.1606
+    - - 0.0
+      - 0.0
+      - 0.0
+      - 1.0
+  frame_assumption:
+    description: ID 3 center is the YAM-compatible EE/TCP origin. EE +Z points into
+      the marker paper. The local-Z 180-degree UMI-to-YAM correction is included,
+      with an optional fixed sticker rotation around +Z.
+    raw_aruco_axes:
+      x: marker right
+      y: marker up
+      z: out of paper
+    yam_ee_axes_at_zero_z_offset:
+      x: marker left
+      y: marker up
+      z: into paper
+    aruco_z_rotation_offset_deg: 0.0
+    fixed_rotation_raw_aruco_from_yam_ee:
+    - - -1.0
+      - 0.0
+      - 0.0
+    - - 0.0
+      - 1.0
+      - 0.0
+    - - 0.0
+      - 0.0
+      - -1.0
+    T_aruco3_raw_from_yam_ee:
+    - - -1.0
+      - 0.0
+      - 0.0
+      - 0.0
+    - - 0.0
+      - 1.0
+      - 0.0
+      - 0.0
+    - - 0.0
+      - 0.0
+      - -1.0
+      - 0.0
+    - - 0.0
+      - 0.0
+      - 0.0
+      - 1.0
+    T_yam_ee_from_aruco3_raw:
+    - - -1.0
+      - -0.0
+      - -0.0
+      - -0.0
+    - - 0.0
+      - 1.0
+      - 0.0
+      - 0.0
+    - - -0.0
+      - -0.0
+      - -1.0
+      - -0.0
+    - - 0.0
+      - 0.0
+      - 0.0
+      - 1.0
+  measurement:
+    timestamp: '2026-08-21T21:11:38'
+    camera_frame_id: camera_color_optical_frame
+    marker_id: 3
+    marker_length_m: 0.02108
+    origin_definition: ArUco ID 3 center is the YAM-compatible EE/TCP origin.
+    raw_aruco_pose:
+      frame_axes:
+        x: marker right
+        y: marker up
+        z: out of paper
+      translation_camera_m:
+        x: 0.009319050980619591
+        y: 0.04285533371804578
+        z: 0.15098044952454315
+      rotation_matrix_camera_from_aruco3:
+      - - 0.9998489131841013
+        - 0.013175221178045956
+        - -0.011338622115586986
+      - - 0.014969723347296625
+        - -0.9842004615255169
+        - 0.17642380484465522
+      - - -0.008835054469323396
+        - -0.17656688556994246
+        - -0.9842489912276542
+      quaternion_camera_from_aruco3_xyzw:
+      - 0.9960294129614438
+      - 0.007064285491745833
+      - -0.005063524310223184
+      - -0.08859946448897238
+      rpy_camera_from_aruco3_rad:
+      - -2.9640882139024214
+      - 0.008835169414750729
+      - 0.01497086685885518
+      rpy_camera_from_aruco3_deg:
+      - -169.82974476107913
+      - 0.5062179187482864
+      - 0.8577674866646777
+      T_camera_from_aruco3_raw:
+      - - 0.9998489131841013
+        - 0.013175221178045956
+        - -0.011338622115586986
+        - 0.009319050980619591
+      - - 0.014969723347296625
+        - -0.9842004615255169
+        - 0.17642380484465522
+        - 0.04285533371804578
+      - - -0.008835054469323396
+        - -0.17656688556994246
+        - -0.9842489912276542
+        - 0.15098044952454315
+      - - 0.0
+        - 0.0
+        - 0.0
+        - 1.0
+      T_aruco3_raw_from_camera:
+      - - 0.9998489131841023
+        - 0.014969723347296628
+        - -0.008835054469323401
+        - -0.008625254989242687
+      - - 0.01317522117804596
+        - -0.9842004615255168
+        - -0.1765668855699425
+        - 0.06871360642079004
+      - - -0.011338622115586991
+        - 0.1764238048446552
+        - -0.9842489912276542
+        - 0.1411473193047494
+      - - 0.0
+        - 0.0
+        - 0.0
+        - 1.0
+    yam_ee_pose:
+      frame_axes:
+        x: YAM EE +X; at zero sticker offset, marker image left
+        y: YAM EE +Y; at zero sticker offset, marker image up
+        z: into marker paper; gripper/tool direction
+      includes_umi_to_yam_local_z_180_deg: true
+      aruco_z_rotation_offset_deg: 0.0
+      translation_camera_m:
+        x: 0.009319050980619591
+        y: 0.04285533371804578
+        z: 0.15098044952454315
+      rotation_matrix_camera_from_yam_ee:
+      - - -0.9998489131841013
+        - 0.013175221178045956
+        - 0.011338622115586986
+      - - -0.014969723347296625
+        - -0.9842004615255169
+        - -0.17642380484465522
+      - - 0.008835054469323396
+        - -0.17656688556994246
+        - 0.9842489912276542
+      quaternion_camera_from_yam_ee_xyzw:
+      - 0.005063524310223184
+      - -0.08859946448897238
+      - 0.9960294129614438
+      - -0.007064285491745833
+      rpy_camera_from_yam_ee_rad:
+      - -0.17750443968737165
+      - -0.008835169414750729
+      - -3.1266217867309383
+      rpy_camera_from_yam_ee_deg:
+      - -10.170255238920864
+      - -0.5062179187482864
+      - -179.14223251333533
+      T_camera_from_yam_ee:
+      - - -0.9998489131841013
+        - 0.013175221178045956
+        - 0.011338622115586986
+        - 0.009319050980619591
+      - - -0.014969723347296625
+        - -0.9842004615255169
+        - -0.17642380484465522
+        - 0.04285533371804578
+      - - 0.008835054469323396
+        - -0.17656688556994246
+        - 0.9842489912276542
+        - 0.15098044952454315
+      - - 0.0
+        - 0.0
+        - 0.0
+        - 1.0
+      T_yam_ee_from_camera:
+      - - -0.9998489131841023
+        - -0.014969723347296628
+        - 0.008835054469323401
+        - 0.008625254989242687
+      - - 0.01317522117804596
+        - -0.9842004615255168
+        - -0.1765668855699425
+        - 0.06871360642079004
+      - - 0.011338622115586991
+        - -0.1764238048446552
+        - 0.9842489912276542
+        - -0.1411473193047494
+      - - 0.0
+        - 0.0
+        - 0.0
+        - 1.0
+      T_camera_from_gripper_tcp:
+      - - -0.9998489131841013
+        - 0.013175221178045956
+        - 0.011338622115586986
+        - 0.009319050980619591
+      - - -0.014969723347296625
+        - -0.9842004615255169
+        - -0.17642380484465522
+        - 0.04285533371804578
+      - - 0.008835054469323396
+        - -0.17656688556994246
+        - 0.9842489912276542
+        - 0.15098044952454315
+      - - 0.0
+        - 0.0
+        - 0.0
+        - 1.0
+      T_gripper_tcp_from_camera:
+      - - -0.9998489131841023
+        - -0.014969723347296628
+        - 0.008835054469323401
+        - 0.008625254989242687
+      - - 0.01317522117804596
+        - -0.9842004615255168
+        - -0.1765668855699425
+        - 0.06871360642079004
+      - - 0.011338622115586991
+        - -0.1764238048446552
+        - 0.9842489912276542
+        - -0.1411473193047494
+      - - 0.0
+        - 0.0
+        - 0.0
+        - 1.0

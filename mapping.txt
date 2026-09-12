@@ -1,0 +1,43 @@
+建圖
+T1:
+cd ~/umi_ORB_SLAM3/ros2_ws
+humble
+ros2 launch realsense2_camera rs_launch.py \
+  enable_color:=false \
+  enable_depth:=true \
+  enable_infra1:=true \
+  enable_infra2:=false \
+  enable_sync:=true \
+  align_depth.enable:=false \
+  depth_module.depth_profile:=848x480x30 \
+  depth_module.infra_profile:=848x480x30
+
+  
+T2:
+cd ~/umi_ORB_SLAM3/ros2_ws
+humble
+source ~/umi_ORB_SLAM3/ros2_ws/install/setup.bash
+ros2 launch umi_orbslam3_bringup xsens.launch.py \
+  param_file:=/home/lab606/umi_ORB_SLAM3/ros2_ws/install/umi_orbslam3_bringup/share/umi_orbslam3_bringup/config/xsens_mapping_100hz.yaml
+
+
+T3:
+cd ~/umi_ORB_SLAM3/ros2_ws
+humble
+source ~/umi_ORB_SLAM3/ros2_ws/install/setup.bash
+
+ros2 run orbslam3 rgbd-inertial \
+  /home/lab606/umi_ORB_SLAM3/core_ws/src/ORB_SLAM3/Vocabulary/ORBvoc.txt \
+  /home/lab606/umi_ORB_SLAM3/core_ws/src/ORB_SLAM3/Examples/RGB-D-Inertial/D405_rgbd_inertial_mapping.yaml \
+  true \
+  /home/lab606/umi_ORB_SLAM3/ros2_ws/output/CameraTrajectory.txt \
+  /home/lab606/umi_ORB_SLAM3/ros2_ws/output/KeyFrameTrajectory.txt \
+  --ros-args \
+  -p imu_time_offset_sec:=0.0 \
+  -p publish_pose:=false \
+  -p publish_odometry:=false \
+  -p publish_tf:=false \
+  -p map_frame_id:=map \
+  -p camera_frame_id:=camera_infra1_optical_frame \
+  -r camera/rgb:=/camera/camera/infra1/image_rect_raw \
+  -r camera/depth:=/camera/camera/depth/image_rect_raw

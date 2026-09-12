@@ -1,0 +1,9 @@
+[submodule "core_ws/src/ORB_SLAM3"]
+	path = core_ws/src/ORB_SLAM3
+	url = https://github.com/ashitamo/ORB_SLAM3.git
+[submodule "core_ws/src/Pangolin"]
+	path = core_ws/src/Pangolin
+	url = https://github.com/stevenlovegrove/Pangolin.git
+[submodule "ros2_ws/src/ORB_SLAM3_ROS2"]
+	path = ros2_ws/src/ORB_SLAM3_ROS2
+	url = https://github.com/ashitamo/ORB_SLAM3_ROS2.git

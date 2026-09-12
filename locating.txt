@@ -1,0 +1,71 @@
+定位
+T1:
+cd ~/umi_ORB_SLAM3/ros2_ws
+humble
+ros2 launch realsense2_camera rs_launch.py \
+  enable_color:=true \
+  enable_depth:=true \
+  enable_infra1:=true \
+  enable_infra2:=false \
+  enable_sync:=true \
+  align_depth.enable:=false \
+  pointcloud.enable:=false \
+  depth_module.depth_profile:=848x480x60 \
+  depth_module.infra_profile:=848x480x60 \
+  depth_module.color_profile:=848x480x60
+  
+T2:
+cd ~/umi_ORB_SLAM3/ros2_ws
+humble
+source ~/umi_ORB_SLAM3/ros2_ws/install/setup.bash
+ros2 launch umi_orbslam3_bringup xsens.launch.py \
+  param_file:=/home/lab606/umi_ORB_SLAM3/ros2_ws/install/umi_orbslam3_bringup/share/umi_orbslam3_bringup/config/xsens_localization_200hz.yaml
+
+T3_1:
+humble
+source ~/umi_ORB_SLAM3/ros2_ws/install/setup.bash
+BAG_NAME=data0814_01
+cd ~/umi_ORB_SLAM3/ros2_ws
+ros2 bag record \
+  --storage mcap \
+  --storage-preset-profile fastwrite \
+  --max-cache-size 268435456 \
+  -o "bags/${BAG_NAME}" \
+  /camera/camera/infra1/image_rect_raw \
+  /camera/camera/depth/image_rect_raw \
+  /camera/camera/color/image_rect_raw/compressed \
+  /camera/camera/infra1/camera_info \
+  /camera/camera/depth/camera_info \
+  /camera/camera/color/camera_info \
+  /camera/camera/extrinsics/depth_to_color \
+  /camera/camera/extrinsics/depth_to_infra1  \
+  /imu/data \
+  /tf \
+  /tf_static 
+
+T3_2:
+ros2 bag play \
+  "bags/${BAG_NAME}" \
+  --start-paused \
+  --rate 0.5
+
+T4:
+cd ~/umi_ORB_SLAM3/ros2_ws
+humble
+source ~/umi_ORB_SLAM3/ros2_ws/install/setup.bash
+
+ros2 run orbslam3 rgbd-inertial \
+  /home/lab606/umi_ORB_SLAM3/core_ws/src/ORB_SLAM3/Vocabulary/ORBvoc.txt \
+  /home/lab606/umi_ORB_SLAM3/core_ws/src/ORB_SLAM3/Examples/RGB-D-Inertial/D405_rgbd_inertial_locating_200_60.yaml \
+  true \
+  /home/lab606/umi_ORB_SLAM3/ros2_ws/output/CameraTrajectory.txt \
+  /home/lab606/umi_ORB_SLAM3/ros2_ws/output/KeyFrameTrajectory.txt \
+  --ros-args \
+  -p imu_time_offset_sec:=0.0 \
+  -p publish_pose:=false \
+  -p publish_odometry:=false \
+  -p publish_tf:=false \
+  -p map_frame_id:=map \
+  -p camera_frame_id:=camera_infra1_optical_frame \
+  -r camera/rgb:=/camera/camera/infra1/image_rect_raw \
+  -r camera/depth:=/camera/camera/depth/image_rect_raw

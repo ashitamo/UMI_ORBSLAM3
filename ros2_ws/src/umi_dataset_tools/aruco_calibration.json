@@ -1,0 +1,49 @@
+{
+  "marker_length_m": 0.0166,
+  "marker_ids": [
+    0,
+    5
+  ],
+  "image_topic": "/camera/camera/color/image_rect_raw",
+  "camera_info_topic": "/camera/camera/color/camera_info",
+  "zero_percent": {
+    "timestamp": "2026-08-11T14:02:54",
+    "marker_1": {
+      "id": 0,
+      "position_m": {
+        "x": 0.0221585217664122,
+        "y": 0.03676302846518931,
+        "z": 0.10638013252892137
+      }
+    },
+    "marker_2": {
+      "id": 5,
+      "position_m": {
+        "x": -0.003097569244664834,
+        "y": 0.03766341840589108,
+        "z": 0.10536555048455805
+      }
+    },
+    "center_distance_m": 0.025292493193235566
+  },
+  "hundred_percent": {
+    "timestamp": "2026-08-11T14:02:35",
+    "marker_1": {
+      "id": 0,
+      "position_m": {
+        "x": 0.06309149205578395,
+        "y": 0.0364548920853433,
+        "z": 0.10542998123142669
+      }
+    },
+    "marker_2": {
+      "id": 5,
+      "position_m": {
+        "x": -0.04461879759973848,
+        "y": 0.03692592661791215,
+        "z": 0.10380528453133235
+      }
+    },
+    "center_distance_m": 0.10772357221107767
+  }
+}

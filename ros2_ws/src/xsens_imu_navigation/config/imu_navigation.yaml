@@ -1,0 +1,38 @@
+imu_dead_reckoning:
+  ros__parameters:
+    free_accel_topic: /filter/free_acceleration
+    quaternion_topic: /filter/quaternion
+    gyro_topic: /imu/angular_velocity
+
+    world_frame: imu_nav
+    body_frame: imu_link
+    child_frame: imu_dead_reckoning
+
+    nominal_rate_hz: 100.0
+    use_fixed_dt: false
+    min_dt: 0.002
+    max_dt: 0.05
+    max_aux_age: 0.05
+
+    # Keep the sensor completely still during this interval.
+    initial_calibration_seconds: 5.0
+    initial_accel_limit: 0.50
+    initial_gyro_limit: 0.05
+
+    low_pass_cutoff_hz: 8.0
+    accel_deadband: 0.025
+    stationary_accel_threshold: 0.08
+    stationary_gyro_threshold: 0.025
+    stationary_hold_seconds: 0.25
+    bias_adaptation_tau: 20.0
+
+    # Set true only when the device is constrained to a flat floor.
+    planar_mode: false
+
+    # Non-physical damping for visualization. Keep zero for honest diagnostics.
+    velocity_leak_per_second: 0.0
+
+    max_acceleration: 40.0
+    path_publish_rate_hz: 20.0
+    path_max_points: 10000
+    publish_tf: true

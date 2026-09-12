@@ -1,0 +1,39 @@
+# Runtime datasets and temporary SLAM output
+/data/
+/runtime/
+/ros2_ws/bags/
+/ros2_ws/trajectories/
+/ros2_ws/processed_data*/
+/ros2_ws/output/
+/ros2_ws/Pick_Blue_Block_and_Place_in_Blue_Bowl_01/
+/ros2_ws/Pick_Blue_Block_and_Place_in_Blue_Bowl_01.zip
+
+# ROS/CMake build products
+/ros2_ws/build/
+/ros2_ws/install/
+/ros2_ws/log/
+/core_ws/build/
+/core_ws/install/
+/core_ws/log/
+/core_ws/src/ORB_SLAM3/build/
+/core_ws/src/ORB_SLAM3/lib/
+/core_ws/src/ORB_SLAM3/Thirdparty/DBoW2/build/
+/core_ws/src/ORB_SLAM3/Thirdparty/DBoW2/lib/
+/core_ws/src/ORB_SLAM3/Thirdparty/g2o/build/
+/core_ws/src/ORB_SLAM3/Thirdparty/g2o/lib/
+/core_ws/src/Pangolin/build/
+**/__pycache__/
+*.py[cod]
+
+# Large generated data
+*.mcap
+*.db3
+*.bag
+*.ply
+*.osa
+
+# Editor and OS state
+.vscode/
+.idea/
+*~
+

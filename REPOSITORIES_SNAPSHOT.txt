@@ -1,0 +1,39 @@
+========================================
+path: core_ws/src/ORB_SLAM3
+branch: feature/trajectory-output-v0.2
+commit: 800c4bd1b420693584c78e253aac24a31cef8f24
+remote:
+origin	https://github.com/UZ-SLAMLab/ORB_SLAM3.git (fetch)
+origin	https://github.com/UZ-SLAMLab/ORB_SLAM3.git (push)
+status:
+ D Examples/RGB-D-Inertial/D405_rgbd_inertial_test.yaml
+?? Examples/RGB-D-Inertial/D405_color_aligned_rgbd_inertial.yaml
+?? Examples/RGB-D-Inertial/D405_rgbd_inertial_60hz.yaml
+?? Examples/RGB-D-Inertial/D405_rgbd_inertial_locating.yaml
+?? Examples/RGB-D-Inertial/D405_rgbd_inertial_locating_200_60.yaml
+?? Examples/RGB-D-Inertial/D405_rgbd_inertial_mapping.yaml
+========================================
+path: core_ws/src/Pangolin
+branch: master
+commit: 3b5373ccd5355ac87bfe98725a5a39aed3eac5e1
+remote:
+origin	https://github.com/stevenlovegrove/Pangolin.git (fetch)
+origin	https://github.com/stevenlovegrove/Pangolin.git (push)
+status:
+========================================
+path: ros2_ws/src/ORB_SLAM3_ROS2
+branch: feature/trajectory-output-v0.2
+commit: b721f91829f9d4b76c6dc973ea76bd7bde627553
+remote:
+origin	https://github.com/zang09/ORB_SLAM3_ROS2.git (fetch)
+origin	https://github.com/zang09/ORB_SLAM3_ROS2.git (push)
+status:
+ M CMakeLists.txt
+ M CMakeModules/FindORB_SLAM3.cmake
+ M package.xml
+ M src/rgbd-inertial/rgbd-inertial-node.cpp
+ M src/rgbd-inertial/rgbd-inertial-node.hpp
+ M src/rgbd-inertial/rgbd-inertial.cpp
+?? D405_rgbd_imu_atlas_test.osa
+?? frames_2026-07-27_20.24.24.gv
+?? frames_2026-07-27_20.24.24.pdf
