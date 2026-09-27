@@ -74,6 +74,7 @@ def main():
     parser.add_argument('bag', type=Path)
     parser.add_argument('--storage-id', required=True)
     parser.add_argument('--startup-sec', type=float, default=6.0)
+    parser.add_argument('--depth-topic', default=DEPTH_TOPIC)
     args = parser.parse_args()
     if args.startup_sec < MIN_WINDOW_SEC:
         parser.error(f'--startup-sec must be at least {MIN_WINDOW_SEC}')
@@ -90,7 +91,7 @@ def main():
         return 1
 
     topic_types = {item.name: item.type for item in reader.get_all_topics_and_types()}
-    required_topics = [RGB_TOPIC, DEPTH_TOPIC, IMU_TOPIC]
+    required_topics = [RGB_TOPIC, args.depth_topic, IMU_TOPIC]
     missing_topics = [topic for topic in required_topics if topic not in topic_types]
     if missing_topics:
         print(f'[STARTUP CHECK] ERROR missing topics: {missing_topics}', file=sys.stderr)
@@ -120,10 +121,10 @@ def main():
 
     print(f'[STARTUP CHECK] bag={bag_path.name} interval={args.startup_sec:.1f}s')
     print(
-        f'[STARTUP CHECK] rgb={counts[RGB_TOPIC]} depth={counts[DEPTH_TOPIC]} '
+        f'[STARTUP CHECK] rgb={counts[RGB_TOPIC]} depth={counts[args.depth_topic]} '
         f'imu={counts[IMU_TOPIC]}'
     )
-    if counts[RGB_TOPIC] == 0 or counts[DEPTH_TOPIC] == 0 or len(imu_records) < MIN_IMU_SAMPLES:
+    if counts[RGB_TOPIC] == 0 or counts[args.depth_topic] == 0 or len(imu_records) < MIN_IMU_SAMPLES:
         print('[STARTUP CHECK] ERROR insufficient startup RGB-D/IMU messages', file=sys.stderr)
         return 1
 

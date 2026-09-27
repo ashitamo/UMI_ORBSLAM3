@@ -16,7 +16,9 @@ PROCESSED_DIR="${PROCESSED_DIR:-${DATA_DIR}/processed}"
 LEGACY_ROS2_WS="${LEGACY_ROS2_WS:-}"
 CALIBRATION="${CALIBRATION:-${ROS2_WS}/src/umi_dataset_tools/aruco_calibration.yaml}"
 VOCAB="${VOCAB:-${CORE_WS}/src/ORB_SLAM3/Vocabulary/ORBvoc.txt}"
-SETTINGS="${SETTINGS:-${CORE_WS}/src/ORB_SLAM3/Examples/RGB-D-Inertial/D405_rgbd_inertial_locating_200_60.yaml}"
+SETTINGS="${SETTINGS:-}"
+SENSOR_MODE="${SENSOR_MODE:-rgbd-inertial}"
+ATLAS_PATH="${ATLAS_PATH:-}"
 BAG_RATE="${BAG_RATE:-0.5}"
 ORB_WARMUP_SEC="${ORB_WARMUP_SEC:-1}"
 ORB_READY_TIMEOUT_SEC="${ORB_READY_TIMEOUT_SEC:-120}"
@@ -32,6 +34,11 @@ RUN_EXPORT=1
 RUN_STARTUP_CHECK=1
 SKIP_HIGH_RISK_STARTUP=0
 ALLOW_LIVE_PUBLISHERS=0
+USE_COMPRESSED_DEPTH=1
+RAW_DEPTH_TOPIC="/camera/camera/depth/image_rect_raw"
+COMPRESSED_DEPTH_TOPIC="/camera/camera/depth/image_rect_raw/compressedDepth"
+ORB_DEPTH_TOPIC="${COMPRESSED_DEPTH_TOPIC}"
+DEPTH_BAG_TOPIC="${COMPRESSED_DEPTH_TOPIC}"
 
 ORB_PID=""
 BAG_PID=""
@@ -45,6 +52,8 @@ Default bags:
   data0812_01 data0812_02 data0812_03
 
 Options:
+  --sensor MODE              rgbd or rgbd-inertial (default); selects executable and default yaml
+  --atlas-path PATH          Atlas input override (optional; otherwise use settings yaml)
   --bag-rate VALUE            ros2 bag play rate, default: 0.5
   --orb-warmup-sec VALUE      settle time after ORB subscriptions are ready, default: 1
   --orb-ready-timeout-sec VALUE maximum seconds to wait for ORB subscriptions, default: 120
@@ -65,8 +74,9 @@ Options:
   --skip-orbslam              only run process_rgbd_bags with existing trajectories
   --skip-export               only run ORB-SLAM3 and save trajectories
   --skip-startup-check        do not inspect startup IMU stability
-  --skip-high-risk-startup    skip bags with no valid startup static-IMU window
+  --skip-high-risk-startup    skip bags with no valid startup static-IMU window (inertial only)
   --allow-live-publishers     allow existing RGB-D/IMU publishers (unsafe for replay)
+  --raw-depth                 use legacy raw depth bags instead of compressedDepth
   -h, --help                  show this help
 
 Examples:
@@ -121,7 +131,7 @@ verify_orb_inputs() {
   local load_atlas
   load_atlas="$(sed -n 's/^[[:space:]]*System.LoadAtlasFromFile:[[:space:]]*"\([^"]*\)".*/\1/p' "${SETTINGS}" | head -n 1)"
   if [[ -n "${load_atlas}" ]]; then
-    local atlas_path="${load_atlas}"
+    local atlas_path="${ATLAS_PATH:-${load_atlas}}"
     if [[ "${atlas_path}" != /* ]]; then
       atlas_path="${ROS2_WS}/${atlas_path}"
     fi
@@ -199,9 +209,11 @@ verify_bag() {
   local bag_info=""
   local required_topics=(
     "/camera/camera/infra1/image_rect_raw"
-    "/camera/camera/depth/image_rect_raw"
-    "/imu/data"
+    "${DEPTH_BAG_TOPIC}"
   )
+  if [[ "${SENSOR_MODE}" == rgbd-inertial ]]; then
+    required_topics+=("/imu/data")
+  fi
 
   if ! bag_info="$(ros2 bag info "${bag_path}" --storage "${storage_id}" 2>&1)"; then
     echo "[${label}] bag validation failed:" >&2
@@ -228,7 +240,7 @@ check_bag_startup() {
   local output=""
   local status=0
 
-  if [[ "${RUN_STARTUP_CHECK}" -ne 1 ]]; then
+  if [[ "${SENSOR_MODE}" == rgbd || "${RUN_STARTUP_CHECK}" -ne 1 ]]; then
     return 0
   fi
   if [[ ! -f "${STARTUP_CHECK_SCRIPT}" ]]; then
@@ -241,6 +253,7 @@ check_bag_startup() {
   output="$(python3 -u "${STARTUP_CHECK_SCRIPT}" \
     "${bag_path}" \
     --storage-id "${storage_id}" \
+    --depth-topic "${DEPTH_BAG_TOPIC}" \
     --startup-sec "${STARTUP_CHECK_SEC}" 2>&1)"
   status=$?
   set -e
@@ -277,9 +290,11 @@ topic_publisher_count() {
 verify_no_live_replay_publishers() {
   local topics=(
     "/camera/camera/infra1/image_rect_raw"
-    "/camera/camera/depth/image_rect_raw"
-    "/imu/data"
+    "${DEPTH_BAG_TOPIC}"
   )
+  if [[ "${SENSOR_MODE}" == rgbd-inertial ]]; then
+    topics+=("/imu/data")
+  fi
   local conflicts=()
   local topic
   local count
@@ -313,7 +328,7 @@ wait_for_orbslam_ready() {
   local depth_count=0
   local imu_count=0
 
-  echo "[${label}] waiting for ORB RGB/Depth/IMU subscriptions"
+  echo "[${label}] waiting for ORB subscriptions (${SENSOR_MODE})"
   while (( waited < ORB_READY_TIMEOUT_SEC )); do
     if ! kill -0 "${ORB_PID}" 2>/dev/null; then
       echo "[${label}] ORB-SLAM3 exited before becoming ready" >&2
@@ -325,13 +340,20 @@ wait_for_orbslam_ready() {
     fi
 
     rgb_count="$(topic_subscription_count "/camera/camera/infra1/image_rect_raw")"
-    depth_count="$(topic_subscription_count "/camera/camera/depth/image_rect_raw")"
-    imu_count="$(topic_subscription_count "/imu/data")"
+    depth_count="$(topic_subscription_count "${ORB_DEPTH_TOPIC}")"
+    if [[ "${SENSOR_MODE}" == rgbd-inertial ]]; then
+      imu_count="$(topic_subscription_count "/imu/data")"
+    fi
     rgb_count="${rgb_count:-0}"
     depth_count="${depth_count:-0}"
     imu_count="${imu_count:-0}"
-    if (( rgb_count > 0 && depth_count > 0 && imu_count > 0 )); then
-      echo "[${label}] ORB subscriptions ready: rgb=${rgb_count} depth=${depth_count} imu=${imu_count}"
+    if (( rgb_count > 0 && depth_count > 0 )) && \
+        { [[ "${SENSOR_MODE}" == rgbd ]] || (( imu_count > 0 )); }; then
+      if [[ "${SENSOR_MODE}" == rgbd ]]; then
+        echo "[${label}] ORB subscriptions ready: rgb=${rgb_count} depth=${depth_count}"
+      else
+        echo "[${label}] ORB subscriptions ready: rgb=${rgb_count} depth=${depth_count} imu=${imu_count}"
+      fi
       return 0
     fi
     sleep 1
@@ -441,24 +463,33 @@ run_orbslam_for_bag() {
     "${TRAJECTORY_DIR}/${label}/CameraTrajectory.txt" \
     "${TRAJECTORY_DIR}/${label}/KeyFrameTrajectory.txt"
 
-  echo "[${label}] starting ORB-SLAM3"
+  local orb_parameters=()
+  if [[ "${SENSOR_MODE}" == rgbd-inertial ]]; then
+    orb_parameters+=(
+      -p imu_time_offset_sec:=0.0
+      -p publish_pose:=false
+      -p publish_odometry:=false
+      -p publish_tf:=false
+      -p map_frame_id:=map
+      -p camera_frame_id:=camera_infra1_optical_frame
+    )
+  fi
+  if [[ -n "${ATLAS_PATH}" ]]; then
+    orb_parameters+=(-p "atlas_path:=${ATLAS_PATH}")
+  fi
+  echo "[${label}] starting ORB-SLAM3 (${SENSOR_MODE})"
   (
     cd "${ROS2_WS}"
-    exec setsid ros2 run orbslam3 rgbd-inertial \
+    exec setsid ros2 run orbslam3 "${SENSOR_MODE}" \
       "${VOCAB}" \
       "${SETTINGS}" \
       "${ORB_VIEWER}" \
       "${camera_trajectory}" \
       "${keyframe_trajectory}" \
       --ros-args \
-      -p imu_time_offset_sec:=0.0 \
-      -p publish_pose:=false \
-      -p publish_odometry:=false \
-      -p publish_tf:=false \
-      -p map_frame_id:=map \
-      -p camera_frame_id:=camera_infra1_optical_frame \
+      "${orb_parameters[@]}" \
       -r camera/rgb:=/camera/camera/infra1/image_rect_raw \
-      -r camera/depth:=/camera/camera/depth/image_rect_raw
+      -r camera/depth:="${ORB_DEPTH_TOPIC}"
   ) &
   ORB_PID=$!
 
@@ -487,7 +518,6 @@ run_orbslam_for_bag() {
   if ! stop_orbslam "${label}"; then
     return 1
   fi
-
   if ! awk 'NF >= 8 && $1 !~ /^#/ { found=1; exit } END { exit !found }' "${camera_trajectory}" 2>/dev/null; then
     echo "[${label}] missing or empty CameraTrajectory.txt" >&2
     return 1
@@ -504,19 +534,37 @@ run_orbslam_for_bag() {
 run_export_for_bag() {
   local bag_path="$1"
   local label="$2"
-  echo "[${label}] exporting RGB images, point clouds, trajectory and gripper widths"
-  ros2 run umi_dataset_tools process_rgbd_bags \
-    "${bag_path}" \
-    --trajectory "${TRAJECTORY_DIR}" \
-    --calibration "${CALIBRATION}" \
-    --output "${PROCESSED_DIR}" \
-    --pointcloud-stride "${POINTCLOUD_STRIDE}" \
+  local command=(
+    ros2 run umi_dataset_tools process_rgbd_bags
+    "${bag_path}"
+    --trajectory "${TRAJECTORY_DIR}"
+    --calibration "${CALIBRATION}"
+    --output "${PROCESSED_DIR}"
+    --pointcloud-stride "${POINTCLOUD_STRIDE}"
     --pixel-stride "${PIXEL_STRIDE}"
+  )
+  if [[ "${USE_COMPRESSED_DEPTH}" -eq 0 ]]; then
+    command+=(--raw-depth)
+  fi
+  echo "[${label}] exporting RGB images, point clouds, trajectory and gripper widths"
+  "${command[@]}"
 }
 
 BAG_ARGS=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --sensor|--atlas-path)
+      if [[ $# -lt 2 || -z "$2" || "$2" == --* ]]; then
+        echo "Missing value for $1" >&2
+        exit 1
+      fi
+      if [[ "$1" == --sensor ]]; then
+        SENSOR_MODE="$2"
+      else
+        ATLAS_PATH="$2"
+      fi
+      shift 2
+      ;;
     --bag-rate)
       BAG_RATE="$2"
       shift 2
@@ -605,6 +653,18 @@ while [[ $# -gt 0 ]]; do
       ALLOW_LIVE_PUBLISHERS=1
       shift
       ;;
+    --compressed-depth)
+      USE_COMPRESSED_DEPTH=1
+      DEPTH_BAG_TOPIC="${COMPRESSED_DEPTH_TOPIC}"
+      ORB_DEPTH_TOPIC="${COMPRESSED_DEPTH_TOPIC}"
+      shift
+      ;;
+    --raw-depth)
+      USE_COMPRESSED_DEPTH=0
+      DEPTH_BAG_TOPIC="${RAW_DEPTH_TOPIC}"
+      ORB_DEPTH_TOPIC="${RAW_DEPTH_TOPIC}"
+      shift
+      ;;
     -h|--help)
       usage
       exit 0
@@ -627,6 +687,23 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
+
+case "${SENSOR_MODE}" in
+  rgbd)
+    SETTINGS="${SETTINGS:-${CORE_WS}/src/ORB_SLAM3/Examples/RGB-D/D405_rgbd_locating.yaml}"
+    ;;
+  rgbd-inertial)
+    SETTINGS="${SETTINGS:-${CORE_WS}/src/ORB_SLAM3/Examples/RGB-D-Inertial/D405_rgbd_inertial_locating.yaml}"
+    ;;
+  *)
+    echo "Invalid --sensor: ${SENSOR_MODE}; expected rgbd or rgbd-inertial" >&2
+    exit 1
+    ;;
+esac
+if [[ -n "${ATLAS_PATH}" ]]; then
+  ATLAS_PATH="$(realpath -m "${ATLAS_PATH}")"
+fi
+echo "Sensor: ${SENSOR_MODE}; settings: ${SETTINGS}"
 
 if [[ ${#BAG_ARGS[@]} -eq 0 ]]; then
   BAG_ARGS=(data0812_01 data0812_02 data0812_03)

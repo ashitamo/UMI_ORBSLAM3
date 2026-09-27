@@ -20,11 +20,13 @@ from rosidl_runtime_py.utilities import get_message
 from scipy.spatial.transform import Rotation
 
 from umi_dataset_tools.project_paths import data_root
+from umi_dataset_tools.compressed_depth import decode_compressed_depth
 
 
-RGB_DEFAULT = '/camera/camera/color/image_rect_raw/compressed'
+RGB_DEFAULT = '/camera/camera/color/image_raw/compressed'
 INFRA_DEFAULT = '/camera/camera/infra1/image_rect_raw'
 DEPTH_DEFAULT = '/camera/camera/depth/image_rect_raw'
+DEPTH_COMPRESSED_DEFAULT = '/camera/camera/depth/image_rect_raw/compressedDepth'
 COLOR_INFO_DEFAULT = '/camera/camera/color/camera_info'
 DEPTH_INFO_DEFAULT = '/camera/camera/depth/camera_info'
 DEPTH_TO_TRACKING_DEFAULT = '/camera/camera/extrinsics/depth_to_infra1'
@@ -400,7 +402,10 @@ def decode_image(message, bridge, compressed):
 
 
 def depth_image(message, bridge):
-    image = bridge.imgmsg_to_cv2(message, desired_encoding='passthrough')
+    if hasattr(message, 'format'):
+        image = decode_compressed_depth(message)
+    else:
+        image = bridge.imgmsg_to_cv2(message, desired_encoding='passthrough')
     image = np.asarray(image)
     if image.dtype == np.uint16:
         return image.astype(np.float32) * 0.001
@@ -1147,7 +1152,18 @@ def main():
     parser.add_argument('--calibration', default=None, type=Path)
     parser.add_argument('--infra-topic', default=INFRA_DEFAULT)
     parser.add_argument('--rgb-topic', default=RGB_DEFAULT)
-    parser.add_argument('--depth-topic', default=DEPTH_DEFAULT)
+    depth_group = parser.add_mutually_exclusive_group()
+    depth_group.add_argument('--depth-topic', default=None)
+    depth_group.add_argument(
+        '--raw-depth',
+        action='store_true',
+        help=f'Use legacy raw depth topic {DEPTH_DEFAULT}',
+    )
+    depth_group.add_argument(
+        '--compressed-depth',
+        action='store_true',
+        help=argparse.SUPPRESS,
+    )
     parser.add_argument('--color-info-topic', default=COLOR_INFO_DEFAULT)
     parser.add_argument('--depth-info-topic', default=DEPTH_INFO_DEFAULT)
     parser.add_argument('--depth-to-tracking-topic', '--extrinsics-topic', default=DEPTH_TO_TRACKING_DEFAULT, dest='depth_to_tracking_topic')
@@ -1178,6 +1194,12 @@ def main():
         help='Deprecated: set both head and tail clipping radii to this value',
     )
     args = parser.parse_args()
+    if args.raw_depth:
+        args.depth_topic = DEPTH_DEFAULT
+    elif args.depth_topic:
+        args.depth_topic = args.depth_topic
+    else:
+        args.depth_topic = DEPTH_COMPRESSED_DEFAULT
     if args.pointcloud_stride < 1 or args.pixel_stride < 1:
         parser.error('stride values must be positive')
     if args.trajectory_clip_radius is not None:

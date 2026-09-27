@@ -31,14 +31,37 @@ Use the wrapper script when trajectories still need to be generated. It runs
 ORB-SLAM3 once per bag, saves each trajectory under `trajectories/<bag_name>/`,
 then calls `process_rgbd_bags`.
 
+Choose `--sensor rgbd` for image-only SLAM or `--sensor rgbd-inertial` (default)
+for IMU SLAM. This selects the executable and its 60 Hz locating YAML; the
+inertial YAML additionally expects 200 Hz IMU. An explicit `--settings` or
+`SETTINGS` environment variable overrides that default. Use `--atlas-path` to
+select the corresponding sensor's Atlas independently of the working directory.
+
+```bash
+cd ~/umi_ORB_SLAM3
+ros2_ws/scripts/run_orbslam_and_process_bags.sh \
+  --sensor rgbd \
+  --atlas-path "$PWD/maps/lab_b36_rgbd/atlas.osa" \
+  --domain-id 42 \
+  --bag-rate 0.4 \
+  data0927_{01..20}
+```
+
+RGB-D mode skips IMU topic validation, IMU publisher conflict checks, IMU
+subscription readiness and the startup IMU check. Image validation and trajectory
+checks remain active. Both modes use the same exporter, which still requires
+color images, camera information and extrinsics. `--raw-depth`, `--skip-export`
+and `--skip-orbslam` work with either mode. The two startup-IMU options have no
+effect in RGB-D mode.
+
 The wrapper reads `storage_identifier` from each bag's `metadata.yaml` and
 passes it explicitly to `ros2 bag play`, avoiding MCAP auto-detection failures.
-It starts playback paused, waits until ORB-SLAM3 has RGB, depth, and IMU
+It starts playback paused, waits until ORB-SLAM3 has RGB, depth (and, in inertial mode, IMU)
 subscriptions, then resumes through `/rosbag2_player/resume`. This preserves
 the recorded startup interval used by Atlas relocalization and static-IMU
 initialization.
 
-Before ORB-SLAM3, the wrapper inspects the first six seconds of each bag using
+In inertial mode, before ORB-SLAM3, the wrapper inspects the first six seconds of each bag using
 the same static-IMU thresholds as the current tracking code. The report is
 saved to `trajectories/<bag_name>/startup_check.txt`. A failed static check is
 a warning by default; use `--skip-high-risk-startup` to skip those bags. Bags
@@ -100,6 +123,20 @@ ros2 run umi_dataset_tools process_rgbd_bags \
 
 `--trajectory` may also be a single TUM file. Use that only when all bags should
 share exactly the same trajectory timestamps.
+
+PNG compressed depth is the default:
+
+```bash
+ros2 run umi_dataset_tools process_rgbd_bags \
+  ../data/bags/data0914_01 \
+  --trajectory ../data/trajectories \
+  --calibration src/umi_dataset_tools/aruco_calibration.yaml \
+  --output ../data/processed
+```
+
+The default topic is `/camera/camera/depth/image_rect_raw/compressedDepth`.
+Use `--raw-depth` for old raw-depth bags, or `--depth-topic` for a custom topic.
+PNG compressedDepth is supported; RVL is rejected with an explicit error.
 
 ## Outputs
 

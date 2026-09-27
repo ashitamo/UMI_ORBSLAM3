@@ -19,11 +19,13 @@ from rosidl_runtime_py.utilities import get_message
 import yaml
 
 from umi_dataset_tools.project_paths import data_root
+from umi_dataset_tools.qos import reliable_image_qos
 
 
 INFRA_TOPIC = '/camera/camera/infra1/image_rect_raw'
 DEPTH_TOPIC = '/camera/camera/depth/image_rect_raw'
-COLOR_TOPIC = '/camera/camera/color/image_rect_raw/compressed'
+DEPTH_COMPRESSED_TOPIC = '/camera/camera/depth/image_rect_raw/compressedDepth'
+COLOR_TOPIC = '/camera/camera/color/image_raw/compressed'
 IMU_TOPIC = '/imu/data'
 COLOR_INFO_TOPIC = '/camera/camera/color/camera_info'
 DEPTH_INFO_TOPIC = '/camera/camera/depth/camera_info'
@@ -46,6 +48,22 @@ REQUIRED_TOPICS = (
 )
 WARNING_TOPICS = (TF_TOPIC, TF_STATIC_TOPIC)
 RECORD_TOPICS = (*REQUIRED_TOPICS, *WARNING_TOPICS)
+
+
+def configure_depth_topic(depth_topic, sensor='rgbd-inertial'):
+    global DEPTH_TOPIC, IMAGE_TOPICS, REQUIRED_TOPICS, RECORD_TOPICS
+    DEPTH_TOPIC = depth_topic
+    IMAGE_TOPICS = (INFRA_TOPIC, DEPTH_TOPIC, COLOR_TOPIC)
+    REQUIRED_TOPICS = (
+        *IMAGE_TOPICS,
+        *((IMU_TOPIC,) if sensor == 'rgbd-inertial' else ()),
+        COLOR_INFO_TOPIC,
+        DEPTH_INFO_TOPIC,
+        INFRA_INFO_TOPIC,
+        DEPTH_TO_TRACKING_TOPIC,
+        DEPTH_TO_COLOR_TOPIC,
+    )
+    RECORD_TOPICS = (*REQUIRED_TOPICS, *WARNING_TOPICS)
 
 
 def format_bytes(size):
@@ -95,7 +113,12 @@ class TopicHealthMonitor(Node):
             if not type_names:
                 continue
             message_type = get_message(type_names[0])
-            qos = transient_qos() if topic in STATIC_TOPICS else qos_profile_sensor_data
+            if topic in STATIC_TOPICS:
+                qos = transient_qos()
+            elif topic in IMAGE_TOPICS:
+                qos = reliable_image_qos()
+            else:
+                qos = qos_profile_sensor_data
             subscription = self.create_subscription(
                 message_type,
                 topic,
@@ -152,30 +175,25 @@ def run_health_check(duration_sec, minimum_image_hz, minimum_imu_hz):
 
     monitor = TopicHealthMonitor(topic_types)
     print(f'\n[HEALTH] Monitoring topics for {duration_sec:.1f} seconds...')
-    deadline = time.monotonic() + duration_sec
+    start_time = time.monotonic()
+    deadline = start_time + duration_sec
     while time.monotonic() < deadline:
-        rclpy.spin_once(monitor, timeout_sec=min(0.1, deadline - time.monotonic()))
+        rclpy.spin_once(monitor, timeout_sec=max(0.0, min(0.1, deadline - time.monotonic())))
 
     passed = True
     print('\n[HEALTH] Topic report')
-    for topic in IMAGE_TOPICS:
+    rate_topics = [(topic, minimum_image_hz) for topic in IMAGE_TOPICS]
+    if IMU_TOPIC in REQUIRED_TOPICS:
+        rate_topics.append((IMU_TOPIC, minimum_imu_hz))
+    for topic, minimum_hz in rate_topics:
         count = monitor.counts[topic]
         rate = monitor.rate(topic)
-        healthy = count >= 2 and rate >= minimum_image_hz
+        healthy = count >= 2 and rate >= minimum_hz
         passed &= healthy
         print(
             f'  [{"OK" if healthy else "FAIL"}] {topic}: '
             f'{rate:.1f} Hz, messages={count}'
         )
-
-    imu_count = monitor.counts[IMU_TOPIC]
-    imu_rate = monitor.rate(IMU_TOPIC)
-    imu_healthy = imu_count >= 2 and imu_rate >= minimum_imu_hz
-    passed &= imu_healthy
-    print(
-        f'  [{"OK" if imu_healthy else "FAIL"}] {IMU_TOPIC}: '
-        f'{imu_rate:.1f} Hz, messages={imu_count}'
-    )
 
     for topic in (
         COLOR_INFO_TOPIC,
@@ -255,7 +273,23 @@ def print_bag_summary(bag_path, wall_duration):
 
 def parse_args():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        '--sensor', choices=('rgbd', 'rgbd-inertial'), default='rgbd-inertial',
+        help='Sensor mode; rgbd skips IMU checks and recording (default: rgbd-inertial)',
+    )
     parser.add_argument('--output-root', type=Path, default=data_root() / 'bags')
+    depth_group = parser.add_mutually_exclusive_group()
+    depth_group.add_argument('--depth-topic', default=None)
+    depth_group.add_argument(
+        '--raw-depth',
+        action='store_true',
+        help=f'Record legacy raw depth from {DEPTH_TOPIC}',
+    )
+    depth_group.add_argument(
+        '--compressed-depth',
+        action='store_true',
+        help=argparse.SUPPRESS,
+    )
     parser.add_argument(
         '--prefix',
         default=None,
@@ -275,6 +309,13 @@ def parse_args():
 
 def main():
     args = parse_args()
+    if args.raw_depth:
+        selected_depth_topic = DEPTH_TOPIC
+    elif args.depth_topic:
+        selected_depth_topic = args.depth_topic
+    else:
+        selected_depth_topic = DEPTH_COMPRESSED_TOPIC
+    configure_depth_topic(selected_depth_topic, args.sensor)
     if args.health_seconds <= 0.0:
         raise SystemExit('--health-seconds must be positive')
     if args.stationary_seconds < 0.0 or args.countdown < 0:
@@ -292,6 +333,7 @@ def main():
 
     print('=' * 72)
     print('UMI RGB-D dataset collector')
+    print(f'Sensor: {args.sensor}')
     print(f'Output: {bag_path}')
     print('=' * 72)
     health_passed = run_health_check(

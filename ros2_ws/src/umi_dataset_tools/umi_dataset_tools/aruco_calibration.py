@@ -17,6 +17,8 @@ from cv_bridge import CvBridge
 from rclpy.node import Node
 from sensor_msgs.msg import CameraInfo, Image
 
+from umi_dataset_tools.qos import reliable_image_qos
+
 
 # ============================================================
 # User settings
@@ -31,7 +33,7 @@ DISTANCE_MARKER_LENGTH = 0.0166       # 16.6 mm
 END_EFFECTOR_MARKER_ID = 3
 END_EFFECTOR_MARKER_LENGTH = 0.02108  # 21.08 mm    
 
-IMAGE_TOPIC = '/camera/camera/color/image_rect_raw'
+IMAGE_TOPIC = '/camera/camera/color/image_raw'
 CAMERA_INFO_TOPIC = '/camera/camera/color/camera_info'
 
 # Save in the parent directory of this script.
@@ -279,14 +281,14 @@ class ArucoCalibrationNode(Node):
             CameraInfo,
             CAMERA_INFO_TOPIC,
             self.camera_info_callback,
-            10
+            reliable_image_qos()
         )
 
         self.image_sub = self.create_subscription(
             Image,
             IMAGE_TOPIC,
             self.image_callback,
-            10
+            reliable_image_qos()
         )
 
         self.load_existing_calibration()

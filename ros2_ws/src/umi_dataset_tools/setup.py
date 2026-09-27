@@ -25,6 +25,7 @@ setup(
     entry_points={
         'console_scripts': [
             'collect_rgbd_bag = umi_dataset_tools.collect_rgbd_bag:main',
+            'decompress_depth = umi_dataset_tools.decompress_depth:main',
             'check_stamps = umi_dataset_tools.check_stamps:main',
             'process_rgbd_bags = umi_dataset_tools.process_rgbd_bags:main',
             'visualize_gripper_rgb = umi_dataset_tools.visualize_gripper_rgb:main',

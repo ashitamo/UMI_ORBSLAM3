@@ -1,6 +1,7 @@
 # Runtime datasets and temporary SLAM output
 /data/
 /runtime/
+/maps/
 /ros2_ws/bags/
 /ros2_ws/trajectories/
 /ros2_ws/processed_data*/

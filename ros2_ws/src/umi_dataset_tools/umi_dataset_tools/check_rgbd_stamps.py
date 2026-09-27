@@ -9,8 +9,13 @@ from typing import Deque, Optional
 
 import rclpy
 from rclpy.node import Node
-from rclpy.qos import qos_profile_sensor_data
-from sensor_msgs.msg import Image
+from rclpy.executors import ExternalShutdownException
+from sensor_msgs.msg import Image, CompressedImage
+
+if __package__:
+    from .qos import reliable_image_qos
+else:
+    from qos import reliable_image_qos
 
 
 @dataclass
@@ -57,16 +62,16 @@ class RGBDStampChecker(Node):
         self.unmatched_depth_count = 0
 
         self.rgb_sub = self.create_subscription(
-            Image,
+            CompressedImage if rgb_topic.endswith(('/compressed', '/compressedDepth')) else Image,
             rgb_topic,
             self.rgb_callback,
-            qos_profile_sensor_data,
+            reliable_image_qos(),
         )
         self.depth_sub = self.create_subscription(
-            Image,
+            CompressedImage if depth_topic.endswith('/compressedDepth') else Image,
             depth_topic,
             self.depth_callback,
-            qos_profile_sensor_data,
+            reliable_image_qos(),
         )
         self.report_timer = self.create_timer(
             report_period_sec,
@@ -128,47 +133,42 @@ class RGBDStampChecker(Node):
         stamp_ns = self.stamp_to_ns(msg)
         arrival_ns = time.monotonic_ns()
         self.process_stream(self.rgb, stamp_ns, arrival_ns)
-        self.recent_rgb.append(stamp_ns)
         self.match_rgb_stamp(stamp_ns)
 
     def depth_callback(self, msg: Image) -> None:
         stamp_ns = self.stamp_to_ns(msg)
         arrival_ns = time.monotonic_ns()
         self.process_stream(self.depth, stamp_ns, arrival_ns)
-        self.recent_depth.append(stamp_ns)
         self.match_depth_stamp(stamp_ns)
 
     def match_rgb_stamp(self, rgb_stamp_ns: int) -> None:
-        if not self.recent_depth:
+        if len(self.recent_rgb) == self.recent_rgb.maxlen:
             self.unmatched_rgb_count += 1
-            return
-
-        nearest_depth_ns = min(
-            self.recent_depth,
-            key=lambda value: abs(value - rgb_stamp_ns),
-        )
-        delta_ns = abs(rgb_stamp_ns - nearest_depth_ns)
-
-        if delta_ns == 0:
-            self.exact_pair_count += 1
-        elif delta_ns <= self.pair_tolerance_ns:
-            self.near_pair_count += 1
-        else:
-            self.unmatched_rgb_count += 1
+        self.recent_rgb.append(rgb_stamp_ns)
+        self.match_pending_stamps()
 
     def match_depth_stamp(self, depth_stamp_ns: int) -> None:
-        if not self.recent_rgb:
+        if len(self.recent_depth) == self.recent_depth.maxlen:
             self.unmatched_depth_count += 1
-            return
+        self.recent_depth.append(depth_stamp_ns)
+        self.match_pending_stamps()
 
-        nearest_rgb_ns = min(
-            self.recent_rgb,
-            key=lambda value: abs(value - depth_stamp_ns),
-        )
-        delta_ns = abs(depth_stamp_ns - nearest_rgb_ns)
-
-        if delta_ns > self.pair_tolerance_ns:
-            self.unmatched_depth_count += 1
+    def match_pending_stamps(self) -> None:
+        while self.recent_rgb and self.recent_depth:
+            delta_ns = self.recent_rgb[0] - self.recent_depth[0]
+            if abs(delta_ns) <= self.pair_tolerance_ns:
+                self.recent_rgb.popleft()
+                self.recent_depth.popleft()
+                if delta_ns == 0:
+                    self.exact_pair_count += 1
+                else:
+                    self.near_pair_count += 1
+            elif delta_ns < 0:
+                self.recent_rgb.popleft()
+                self.unmatched_rgb_count += 1
+            else:
+                self.recent_depth.popleft()
+                self.unmatched_depth_count += 1
 
     @staticmethod
     def header_rate(stats: StreamStats) -> float:
@@ -200,12 +200,14 @@ class RGBDStampChecker(Node):
         )
 
     def report(self) -> None:
-        self.get_logger().info(self.report_stream(self.rgb))
-        self.get_logger().info(self.report_stream(self.depth))
-        self.get_logger().info(
+        emit = self.get_logger().info if rclpy.ok(context=self.context) else print
+        emit(self.report_stream(self.rgb))
+        emit(self.report_stream(self.depth))
+        emit(
             f'Pairing: exact={self.exact_pair_count}, near={self.near_pair_count}, '
             f'unmatched_rgb={self.unmatched_rgb_count}, '
-            f'unmatched_depth={self.unmatched_depth_count}'
+            f'unmatched_depth={self.unmatched_depth_count}, '
+            f'pending_rgb={len(self.recent_rgb)}, pending_depth={len(self.recent_depth)}'
         )
 
 
@@ -229,7 +231,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument('--pair-tolerance-ms', type=float, default=5.0)
     parser.add_argument('--report-period-sec', type=float, default=2.0)
     parser.add_argument('--recent-queue-size', type=int, default=30)
-    return parser.parse_args()
+    cli = parser.parse_args()
+    for name in ('expected_hz', 'gap_factor', 'report_period_sec'):
+        if not math.isfinite(getattr(cli, name)) or getattr(cli, name) <= 0:
+            parser.error(f'{name} must be finite and positive')
+    if not math.isfinite(cli.pair_tolerance_ms) or cli.pair_tolerance_ms < 0:
+        parser.error('pair tolerance must be finite and non-negative')
+    if cli.recent_queue_size < 1:
+        parser.error('recent queue size must be positive')
+    return cli
 
 
 def main(args=None) -> None:
@@ -247,12 +257,12 @@ def main(args=None) -> None:
 
     try:
         rclpy.spin(node)
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, ExternalShutdownException):
         pass
     finally:
         node.report()
         node.destroy_node()
-        rclpy.shutdown()
+        rclpy.try_shutdown()
 
 
 if __name__ == '__main__':
