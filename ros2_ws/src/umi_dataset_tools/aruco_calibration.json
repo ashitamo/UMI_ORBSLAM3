@@ -4,7 +4,7 @@
     0,
     5
   ],
-  "image_topic": "/camera/camera/color/image_rect_raw",
+  "image_topic": "/camera/camera/color/image_raw",
   "camera_info_topic": "/camera/camera/color/camera_info",
   "zero_percent": {
     "timestamp": "2026-08-11T14:02:54",
