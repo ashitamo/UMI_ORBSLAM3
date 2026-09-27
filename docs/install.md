@@ -90,7 +90,7 @@ Xsens 不會隨上述 RealSense apt 指令安裝。本 repository 已包含
 sudo apt install -y ros-humble-nmea-msgs ros-humble-mavros-msgs
 ```
 
-必須能找到：
+完成 apt 安裝、本 workspace 編譯及載入環境後，必須能找到：
 
 ```text
 realsense2_camera
@@ -98,21 +98,13 @@ realsense2_camera_msgs
 xsens_mti_ros2_driver
 ```
 
-`~/umi_legacy/ros2_ws` 只是外部 Xsens driver 的範例位置，不是本專案的一部分，
-也不是固定路徑。只有 Xsens driver 安裝在該 workspace 時才需要：
+不再使用外部 driver workspace。請從新的 terminal 依本文流程建置，
+完成後只載入 `/opt/ros/humble/setup.bash` 與本專案的
+`ros2_ws/install/setup.bash`。若 shell 啟動設定仍會自動載入舊 driver，
+請移除該設定，並清除以前設定的 `LEGACY_ROS2_WS` 環境變數：
 
 ```bash
-source /opt/ros/humble/setup.bash
-source ~/umi_legacy/ros2_ws/install/setup.bash
-export LEGACY_ROS2_WS=~/umi_legacy/ros2_ws
-```
-
-pipeline 不再硬編碼 legacy workspace；沒有使用該 workspace 就不要 source。
-如果 driver 位於其他 workspace，請將上述路徑替換成實際安裝位置，例如：
-
-```bash
-source ~/sensor_drivers_ws/install/setup.bash
-export LEGACY_ROS2_WS=~/sensor_drivers_ws
+unset LEGACY_ROS2_WS
 ```
 
 ## 4. Clone Repository
@@ -145,8 +137,6 @@ cd ~/umi_ORB_SLAM3
 
 ```bash
 source /opt/ros/humble/setup.bash
-# 僅當 Xsens driver 位於此 workspace 時需要；勿載入舊 RealSense overlay
-# source ~/umi_legacy/ros2_ws/install/setup.bash
 cd ~/umi_ORB_SLAM3
 rosdep install \
   --from-paths ros2_ws/src \
@@ -208,8 +198,6 @@ chmod +x build.sh
 
 ```bash
 source /opt/ros/humble/setup.bash
-# 僅當 Xsens driver 位於此 workspace 時需要；勿載入舊 RealSense overlay
-# source ~/umi_legacy/ros2_ws/install/setup.bash
 export ORB_SLAM3_ROOT_DIR=~/umi_ORB_SLAM3/core_ws/src/ORB_SLAM3
 
 cd ~/umi_ORB_SLAM3/ros2_ws
@@ -226,8 +214,6 @@ colcon build \
 
 ```bash
 source /opt/ros/humble/setup.bash
-# 僅當 Xsens driver 位於此 workspace 時需要；勿載入舊 RealSense overlay
-# source ~/umi_legacy/ros2_ws/install/setup.bash
 source ~/umi_ORB_SLAM3/ros2_ws/install/setup.bash
 ```
 
@@ -241,6 +227,8 @@ source ~/umi_ORB_SLAM3/ros2_ws/install/setup.bash
 ros2 pkg prefix orbslam3
 ros2 pkg prefix umi_orbslam3_bringup
 ros2 pkg prefix umi_dataset_tools
+ros2 pkg prefix realsense2_camera
+ros2 pkg prefix xsens_mti_ros2_driver
 ros2 pkg executables orbslam3
 ros2 pkg executables umi_dataset_tools
 ```
