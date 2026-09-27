@@ -75,11 +75,20 @@ dpkg-query -W 'ros-humble-realsense2*'
 目前建議使用 raw depth，並保留同步；compressedDepth 的降頻與 color
 停止問題見 [repo_state.md](repo_state.md#compresseddepth-實機發布異常)。
 
-### Xsens：另行準備 driver
+### Xsens：使用 repository 內的 driver
 
-Xsens 不會隨上述 RealSense apt 指令安裝。使用者仍需提供相容於 Humble
-的 `xsens_mti_ros2_driver`；若安裝在獨立 workspace，編譯及執行前需 source
-該 workspace。RealSense 本身不再需要 legacy workspace。
+Xsens 不會隨上述 RealSense apt 指令安裝。本 repository 已包含
+`ros2_ws/src/Xsens_MTi_ROS_Driver_and_Ntrip_Client/`，其中有
+`xsens_mti_ros2_driver` 與 `ntrip` packages，隨 `ros2_ws` 一起編譯。
+不需另外 clone 或 source legacy driver workspace；避免同時加入同名 package。
+原始 driver 說明與授權保留在該目錄。NTRIP 帳密為範例占位值，正式憑證
+請另存本機，不要提交到 Git。
+
+在後續 rosdep 步驟安裝相依套件；亦可明確安裝：
+
+```bash
+sudo apt install -y ros-humble-nmea-msgs ros-humble-mavros-msgs
+```
 
 必須能找到：
 
@@ -146,8 +155,8 @@ rosdep install \
   -r -y
 ```
 
-若 rosdep 找不到 Xsens package，應先安裝並 source Xsens workspace，不要移除
-`package.xml` 裡的 dependency。
+若找不到 Xsens package，先確認 repository 內的 driver 目錄完整，並用
+`colcon list` 確認可發現 `xsens_mti_ros2_driver`；不要移除 dependency。
 
 ## 7. 編譯
 

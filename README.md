@@ -39,9 +39,9 @@ IMU： /imu/data
 
 ## 安裝
 
-> **此 repository 不包含 RealSense 與 Xsens ROS 2 driver。** 首次建置前必須
-> 自行安裝 `realsense2_camera`、`realsense2_camera_msgs` 與
-> `xsens_mti_ros2_driver`，並 source driver 所在的 workspace。
+> **RealSense ROS 2 driver 使用 apt 安裝；Xsens driver 原始碼已包含於本 repository。**
+> 首次建置前請依安裝文件安裝 `realsense2_camera`、`realsense2_camera_msgs`，
+> 再編譯本 workspace 內的 `xsens_mti_ros2_driver`。
 
 完整的全新電腦安裝、submodule、相依套件、編譯與驗證流程：
 
